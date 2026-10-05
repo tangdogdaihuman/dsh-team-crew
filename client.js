@@ -92,6 +92,13 @@ window.__ModuleLoader__.load({
 .tc-field{display:flex;align-items:center;gap:4px}
 .tc-field span{color:var(--dsw-alias-label-secondary);font-size:11px}
 .tc-field select{height:24px;max-width:170px;border-radius:6px;padding:0 4px;font-size:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:inherit}
+/* The popup option list is native browser chrome: it ignores the panel's glass
+   and, without an explicit scheme, Chromium paints it light even in the dark
+   theme (production feedback: a blinding gray dropdown). Pin the scheme to the
+   app theme and give options explicit colors — native popups respect both. */
+.tc-field select{color-scheme:light}
+body[data-ds-dark-theme] .tc-field select{color-scheme:dark}
+.tc-field select option,.tc-field select optgroup{background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary)}
 .tc-apply{height:24px;padding:0 10px;border-radius:6px;border:none;cursor:pointer;font-size:12px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base)}
 .tc-apply:disabled{opacity:.5;cursor:default}
 .tc-msg{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1.5;word-break:break-word}
@@ -137,6 +144,12 @@ body[data-we-wallpaper] .tc-field select{
   background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-light,255,255,255), calc(var(--we-glass-alpha,.15) * 1.4)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-layer-2))}
 body[data-ds-dark-theme][data-we-wallpaper] .tc-field select{
   background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-dark,255,255,255), calc(var(--we-glass-alpha,.15) * .6)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-layer-2))}
+body[data-ds-dark-theme][data-we-wallpaper] .tc-field select option,
+body[data-ds-dark-theme][data-we-wallpaper] .tc-field select optgroup{
+  /* Native popup over a wallpaper: use the glass tint, not the raw theme
+     overlay, so the list matches the frosted card it belongs to. */
+  background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-dark,13,21,36), 60%), var(--dsw-alias-bg-base));
+  color:var(--dsw-alias-label-primary)}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   body[data-we-wallpaper] .tc-card{
     background:color-mix(in srgb, var(--dsw-alias-bg-overlay) 92%, transparent);

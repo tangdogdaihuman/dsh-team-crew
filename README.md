@@ -31,6 +31,10 @@
 - **「应用」按钮只在选了新路线后出现**——此前它是"常驻但禁用"，在玻璃主题下渲染成一块无字灰疙瘩，看起来像坏了一样。退役行也只显示「恢复」。
 - **壁纸引擎液态玻璃适配**：检测到 `dsh-plugin-wallpaper-engine` 激活（`body[data-we-wallpaper]`）时，面板自动套用**与作曲家/弹层同一张玻璃配方**——复用它的共享令牌（`--we-glass-alpha/--we-blur/--we-saturate/--we-surface-tint-rgb-*`），浅色原样、深色 ×0.4、可读性下限 `--we-readability-floor` 保 4.5:1 对比度、无 `backdrop-filter` 支持时回退近不透明底板。壁纸引擎不装或没开时这些变量不解析，自动回落到原生主题令牌，**两个插件互不依赖**。client probe 33/33 PASS（含 4 条玻璃断言）。
 
+## v1.1.5：修复下拉选项列表刺眼的亮灰色
+
+`<select>` 弹出的选项列表是**浏览器原生 UI**，不吃面板的玻璃样式；不显式声明 `color-scheme` 时 Chromium 在深色主题下也按浅色画，出现一块刺眼的亮灰（现场反馈截图）。修复：按应用主题钉 `color-scheme`（浅/深），并给 `option` 显式表面色+文字色；深色玻璃主题下选项列表用玻璃 tint 而非生硬的主题色。client probe 35/35（+2 条断言）。
+
 ## 实现要点（为什么不碰内核）
 
 - **模型**：队友出生时模型从 Lead 的 live 配置复制一次就固化在 `subagent/descriptor` 里；冷恢复也只按 descriptor 重建。本插件不改 journal、不改 descriptor，而是在**平台自己的模型选择接缝**上做事：`installModelSelection()`（`@deepseek-ai/dsh-agent`，就是 GUI 切模型用的同一套监听 `system-prompt/assemble` / `agent/request` / `agent/pre-step`）+ 往队友**自己**的会话日志追加已有的 log-only 事件 `model/selection`。所以效果与 GUI 手切一致：新挡位/新模型只在她下一轮请求的边界生效，上下文里多一条 `[model changed]` 提示，历史一个字都不动。

@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-team-crew",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": true,
   "type": "module",
   "description": "Agent Teams 补票插件：队友模型/思考挡位热切换（保记忆）+ 软删除（退役）+ 人类自助换脑台（GUI 面板与 /crew 命令），液态玻璃主题自适应。",

@@ -1,0 +1,6 @@
+- insert:
+    - id: team-crew
+      name: '@local/dsh-team-crew'
+      config:
+        deferModelSwitchWhileRunning: true
+        drainOnRetire: true

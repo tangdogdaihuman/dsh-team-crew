@@ -1,0 +1,3 @@
+local-dsh-team-crew-*.tgz
+node_modules/
+*.log

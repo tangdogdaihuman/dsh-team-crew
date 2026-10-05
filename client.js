@@ -43,6 +43,7 @@ window.__ModuleLoader__.load({
         unchanged: "模型和挡位都没变。",
         failed: "操作失败",
         retireReason: "GUI 换脑台退役",
+        currentTag: "（当前）",
         help: "命令栏同样能用了：/crew list ｜ /crew models <provider> ｜ /crew set <队友> <模型> [挡位] ｜ /crew retire <队友>"
       },
       en: {
@@ -68,6 +69,7 @@ window.__ModuleLoader__.load({
         unchanged: "Neither model nor effort changed.",
         failed: "Operation failed",
         retireReason: "Retired from the Team Crew desk",
+        currentTag: "(current)",
         help: "Composer works too: /crew list ｜ /crew models <provider> ｜ /crew set <mate> <model> [effort] ｜ /crew retire <mate>"
       }
     };
@@ -91,15 +93,20 @@ window.__ModuleLoader__.load({
 .tc-tag[data-kind="run"]{color:var(--dsw-alias-state-success-primary)}
 .tc-field{display:flex;align-items:center;gap:4px}
 .tc-field span{color:var(--dsw-alias-label-secondary);font-size:11px}
-.tc-field select{height:24px;max-width:170px;border-radius:6px;padding:0 4px;font-size:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:inherit}
-/* The popup option list is native browser chrome: it ignores the panel's glass
-   and, without an explicit scheme, Chromium paints it light even in the dark
-   theme (production feedback: a blinding gray dropdown). Pin the scheme to the
-   app theme and give options explicit colors — native popups respect both. */
-.tc-field select{color-scheme:light}
-body[data-ds-dark-theme] .tc-field select{color-scheme:dark}
-.tc-field select option,.tc-field select optgroup{background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary)}
-.tc-apply{height:24px;padding:0 10px;border-radius:6px;border:none;cursor:pointer;font-size:12px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base)}
+/* Self-drawn dropdown. The native <select> popup is OS-drawn chrome: on this
+   host it ignores page CSS entirely (v1.1.5's color-scheme + option colors
+   were both dead on arrival). Rendering the list ourselves puts it under the
+   glass recipe like every other surface, with a deterministic current-value
+   display even when the live route is not in the catalog. */
+.tc-dd{position:relative;display:inline-flex}
+.tc-dd-btn{height:24px;min-width:110px;max-width:190px;padding:0 8px;border-radius:6px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font-size:12px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.tc-dd-btn:hover,.tc-dd-btn[data-open="1"]{border-color:var(--dsw-alias-border-l2)}
+.tc-dd-btn[data-stale="1"]{color:var(--dsw-alias-label-secondary);font-style:italic}
+.tc-list{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:100%;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:2px;padding:4px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);box-shadow:0 12px 32px rgba(0,0,0,.28)}
+.tc-opt{padding:4px 8px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);white-space:nowrap}
+.tc-opt:hover{background:var(--dsw-alias-bg-layer-2)}
+.tc-opt[data-selected="1"]{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base)}
+.tc-apply{height:24px;padding:0 10px;border-radius:6px;border:none;cursor:pointer;font-size:12px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base);box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l2)}
 .tc-apply:disabled{opacity:.5;cursor:default}
 .tc-msg{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1.5;word-break:break-word}
 .tc-msg[data-kind="error"]{color:var(--dsw-alias-state-error-primary)}
@@ -140,16 +147,25 @@ body[data-we-wallpaper] .tc-ghost{
   background:rgba(var(--we-surface-tint-rgb-light,255,255,255), calc(var(--we-glass-alpha,.15) * .8))}
 body[data-ds-dark-theme][data-we-wallpaper] .tc-ghost{
   background:rgba(var(--we-surface-tint-rgb-dark,255,255,255), calc(var(--we-glass-alpha,.15) * .3))}
-body[data-we-wallpaper] .tc-field select{
+body[data-we-wallpaper] .tc-dd-btn{
   background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-light,255,255,255), calc(var(--we-glass-alpha,.15) * 1.4)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-layer-2))}
-body[data-ds-dark-theme][data-we-wallpaper] .tc-field select{
+body[data-ds-dark-theme][data-we-wallpaper] .tc-dd-btn{
   background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-dark,255,255,255), calc(var(--we-glass-alpha,.15) * .6)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-layer-2))}
-body[data-ds-dark-theme][data-we-wallpaper] .tc-field select option,
-body[data-ds-dark-theme][data-we-wallpaper] .tc-field select optgroup{
-  /* Native popup over a wallpaper: use the glass tint, not the raw theme
-     overlay, so the list matches the frosted card it belongs to. */
-  background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-dark,13,21,36), 60%), var(--dsw-alias-bg-base));
-  color:var(--dsw-alias-label-primary)}
+body[data-we-wallpaper] .tc-list{
+  background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-light,255,255,255), calc(var(--we-glass-alpha,.15) * .8)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-overlay));
+  -webkit-backdrop-filter:blur(var(--we-blur,16px)) saturate(var(--we-saturate,1.8)) brightness(var(--we-glass-brightness,1.04)) contrast(1.01);
+  backdrop-filter:blur(var(--we-blur,16px)) saturate(var(--we-saturate,1.8)) brightness(var(--we-glass-brightness,1.04)) contrast(1.01);
+  border:1px solid rgba(255,255,255,var(--we-glass-highlight,.32))}
+body[data-ds-dark-theme][data-we-wallpaper] .tc-list{
+  background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-dark,255,255,255), calc(var(--we-glass-alpha,.15) * .33)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-overlay))}
+body[data-we-wallpaper] .tc-apply{
+  /* Production feedback: brand-on-base read as a blank white block under the
+     glass theme (both tokens resolved near-white). An inset ring + the dark
+     scheme tint keeps the label readable regardless of token pairing. */
+  color:var(--dsw-alias-label-primary);
+  text-shadow:0 0 2px rgba(0,0,0,.35)}
+body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
+  text-shadow:0 0 2px rgba(255,255,255,.25)}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   body[data-we-wallpaper] .tc-card{
     background:color-mix(in srgb, var(--dsw-alias-bg-overlay) 92%, transparent);
@@ -212,6 +228,36 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-field select optgroup{
       const sessionId = props.sessionId;
       const useSession = props.useSession;
       const useSessions = props.useSessions;
+      /**
+       * One self-drawn dropdown. The native <select> popup is OS-drawn and
+       * ignores page CSS on this host, so the option list is rendered inline:
+       * same glass recipe as the card, current value always visible (with a
+       * "current" marker when it is not part of the fetched catalog), and an
+       * explicit empty entry. `disabled` renders a flat read-only label.
+       */
+      function Dropdown({ label, value, options, disabled, stale, onPick }) {
+        const [listOpen, setListOpen] = React.useState(false);
+        if (disabled) return h("label", { className: "tc-field" }, h("span", {}, label), h("span", { className: "tc-dd-flat" }, value || "—"));
+        return h("label", { className: "tc-field" }, h("span", {}, label), h("span", {
+          className: "tc-dd",
+          onBlur: () => setListOpen(false)
+        }, h("button", {
+          className: "tc-dd-btn",
+          type: "button",
+          "data-open": listOpen ? "1" : "0",
+          "data-stale": stale ? "1" : "0",
+          onClick: () => setListOpen((v) => !v)
+        }, value || "—"), listOpen ? h("span", { className: "tc-list" }, options.map((entry) => h("span", {
+          key: entry.value,
+          className: "tc-opt",
+          "data-selected": entry.value === value ? "1" : "0",
+          onClick: () => {
+            setListOpen(false);
+            onPick(entry.value);
+          }
+        }, entry.label))) : null));
+      }
+      const optionish = (value, label, selected) => ({ value, label: selected ? `${label} ${t("currentTag")}` : label });
       // The roster is owned by the Lead Session; a teammate's own header resolves
       // up to the same one, so the desk works from either side of the conversation.
       const parent = useSession === undefined ? void 0 : useSession((snapshot) => snapshot.subagent?.address?.parentSessionId);
@@ -324,38 +370,38 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-field select optgroup{
           className: "tc-row",
           key: member.name,
           "data-retired": member.retired === true ? "1" : "0"
-        }, h("div", { className: "tc-line" }, h("span", { className: "tc-name" }, member.name), member.retired === true ? h("span", { className: "tc-tag", "data-kind": "retired" }, t("retired")) : null, member.switch_state === "pending" ? h("span", { className: "tc-tag", "data-kind": "queued" }, t("queued")) : null, member.resident === false ? h("span", { className: "tc-tag" }, t("cold")) : null, member.status === "running" ? h("span", { className: "tc-tag", "data-kind": "run" }, t("running")) : null, h("span", { className: "tc-spacer" }), h("span", { className: "tc-tag" }, `${t("current")}: ${[member.provider, member.model].filter(Boolean).join("/") || "?"}${member.reasoning_effort ? ` · ${member.reasoning_effort}` : ""}`)), h("div", { className: "tc-line" }, h("label", { className: "tc-field" }, h("span", {}, t("provider")), h("select", {
-          value: draft.provider ?? "",
-          disabled: member.retired === true,
-          onChange: (event) => {
-            setDraft({
-              provider: event.target.value,
-              model: null,
-              effort: null
-            });
-            void modelsFor(event.target.value, false);
-          }
-        }, h("option", { value: "" }, "—"), (view?.providers ?? []).map((entry) => h("option", {
-          key: entry.id,
-          value: entry.id
-        }, entry.name ?? entry.id)))), h("label", { className: "tc-field" }, h("span", {}, t("model")), h("select", {
-          value: draft.model ?? "",
-          disabled: member.retired === true || draft.provider == null || draft.provider === "",
-          onChange: (event) => setDraft({
-            model: event.target.value,
+        }, h("div", { className: "tc-line" }, h("span", { className: "tc-name" }, member.name), member.retired === true ? h("span", { className: "tc-tag", "data-kind": "retired" }, t("retired")) : null, member.switch_state === "pending" ? h("span", { className: "tc-tag", "data-kind": "queued" }, t("queued")) : null, member.resident === false ? h("span", { className: "tc-tag" }, t("cold")) : null, member.status === "running" ? h("span", { className: "tc-tag", "data-kind": "run" }, t("running")) : null, h("span", { className: "tc-spacer" }), h("span", { className: "tc-tag" }, `${t("current")}: ${[member.provider, member.model].filter(Boolean).join("/") || "?"}${member.reasoning_effort ? ` · ${member.reasoning_effort}` : ""}`)), h("div", { className: "tc-line" }, React.createElement(Dropdown, {
+        label: t("provider"),
+        value: draft.provider ?? "",
+        options: [{ value: "", label: "—" }, ...(view?.providers ?? []).map((entry) => ({ value: entry.id, label: entry.name ?? entry.id }))],
+        disabled: member.retired === true,
+        stale: false,
+        onPick: (next) => {
+          setDraft({
+            provider: next,
+            model: null,
             effort: null
-          })
-        }, h("option", { value: "" }, "—"), models.map((entry) => h("option", {
-          key: entry.model,
-          value: entry.model
-        }, entry.name && entry.name !== entry.model ? `${entry.model} · ${entry.name}` : entry.model)))), h("label", { className: "tc-field" }, h("span", {}, t("effort")), h("select", {
-          value: draft.effort ?? "",
-          disabled: member.retired === true || chosen === undefined || efforts.length === 0,
-          onChange: (event) => setDraft({ effort: event.target.value || null })
-        }, h("option", { value: "" }, t("defaultEffort")), efforts.map((entry) => h("option", {
-          key: entry,
-          value: entry
-        }, entry)))), h("span", { className: "tc-spacer" }), dirty && !member.retired && draft.model !== null && draft.model !== "" ? h("button", {
+          });
+          void modelsFor(next, false);
+        }
+      }), React.createElement(Dropdown, {
+        label: t("model"),
+        value: draft.model ?? "",
+        options: [{ value: "", label: "—" }, ...models.map((entry) => ({ value: entry.model, label: entry.name && entry.name !== entry.model ? `${entry.model} · ${entry.name}` : entry.model }))],
+        disabled: member.retired === true || draft.provider == null || draft.provider === "",
+        stale: false,
+        onPick: (next) => setDraft({
+          model: next,
+          effort: null
+        })
+      }), React.createElement(Dropdown, {
+        label: t("effort"),
+        value: draft.effort === null || draft.effort === "" || draft.effort === undefined ? t("defaultEffort") : draft.effort,
+        options: [{ value: "", label: t("defaultEffort") }, ...efforts.map((entry) => optionish(entry, entry, entry === member.reasoning_effort && (draft.effort === null || draft.effort === "")))],
+        disabled: member.retired === true || chosen === undefined || efforts.length === 0,
+        stale: draft.effort !== null && draft.effort !== "" && draft.effort !== undefined && !efforts.includes(draft.effort),
+        onPick: (next) => setDraft({ effort: next || null })
+      })), h("span", { className: "tc-spacer" }), dirty && !member.retired && draft.model !== null && draft.model !== "" ? h("button", {
           className: "tc-apply",
           type: "button",
           disabled: busy,
@@ -385,7 +431,7 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-field select optgroup{
             const fresh = await run("/crew list");
             if (fresh !== undefined) setView(fresh);
           }
-        }, t("retiring")), member.retired === true && member.retire_reason ? h("div", { className: "tc-msg" }, member.retire_reason) : null));
+        }, t("retiring")), member.retired === true && member.retire_reason ? h("div", { className: "tc-msg" }, member.retire_reason) : null);
       }), h("div", { className: "tc-msg" }, t("help"))) : null);
     }
     return {

@@ -35,6 +35,14 @@
 
 `<select>` 弹出的选项列表是**浏览器原生 UI**，不吃面板的玻璃样式；不显式声明 `color-scheme` 时 Chromium 在深色主题下也按浅色画，出现一块刺眼的亮灰（现场反馈截图）。修复：按应用主题钉 `color-scheme`（浅/深），并给 `option` 显式表面色+文字色；深色玻璃主题下选项列表用玻璃 tint 而非生硬的主题色。client probe 35/35（+2 条断言）。
 
+## v1.1.6：自绘下拉（v1.1.5 的方案在本宿主无效）+ 应用按钮对比度
+
+现场复测证明 v1.1.5 **在这台宿主上无效**：`<select>` 的弹出列表是 OS 级原生 chrome，连 `option` 的显式配色都完全无视。改为**面板内置自绘下拉**（`.tc-dd-btn` + `.tc-list`）：选项列表与面板同一张玻璃配方，样式 100% 可控。同时修掉：
+
+- **「应用」按钮白底白字**（用户看到的"无字白块"）：玻璃主题下 `--dsw-alias-brand-primary` 与文字色近乎同色。现改用 `--dsw-alias-label-primary` 前景 + inset 描边环，任何令牌配对都可读。
+- **挡位显示"（默认）"但实际是 max**：目录里没有 `max` 选项时原生 select 无法表示当前值。自绘下拉始终显示真实当前值；当前值不在目录时以斜体灰显示，目录内当前项带「（当前）」标记——你点开就能看清她真正的挡位。
+- 探针升级到 39/39（自绘下拉结构、玻璃列表、当前值显示、应用按钮对比度）。
+
 ## 实现要点（为什么不碰内核）
 
 - **模型**：队友出生时模型从 Lead 的 live 配置复制一次就固化在 `subagent/descriptor` 里；冷恢复也只按 descriptor 重建。本插件不改 journal、不改 descriptor，而是在**平台自己的模型选择接缝**上做事：`installModelSelection()`（`@deepseek-ai/dsh-agent`，就是 GUI 切模型用的同一套监听 `system-prompt/assemble` / `agent/request` / `agent/pre-step`）+ 往队友**自己**的会话日志追加已有的 log-only 事件 `model/selection`。所以效果与 GUI 手切一致：新挡位/新模型只在她下一轮请求的边界生效，上下文里多一条 `[model changed]` 提示，历史一个字都不动。

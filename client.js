@@ -22,7 +22,7 @@ window.__ModuleLoader__.load({
     // Bump together with package.json — rendered as a watermark in the desk
     // header so a stale frontend is diagnosable in one glance (four rounds of
     // "重启了还是没变" made this non-negotiable). The probe asserts the match.
-    const VERSION = "1.1.10";
+    const VERSION = "1.1.11";
     const DICTIONARY = {
       zh: {
         button: "队友",
@@ -118,7 +118,7 @@ window.__ModuleLoader__.load({
 .tc-dd-btn::after{content:"▾";margin-left:6px;font-size:10px;color:var(--dsw-alias-label-secondary)}
 .tc-dd-btn[data-stale="1"]{color:var(--dsw-alias-label-secondary);font-style:italic}
 .tc-list{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:100%;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);box-shadow:0 12px 32px rgba(0,0,0,.28)}
-.tc-opt{padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);font-size:12px;line-height:1.45;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
+.tc-opt{flex:none;min-height:32px;display:flex;align-items:center;padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);font-size:12px;line-height:1.45;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
 /* v1.1.8: hover/selected ride REAL surface tokens (bg-layer-2 over the opaque
    bg-overlay list), not brand tints — on this host brand-primary resolves
    near-white, so a brand wash was invisible in light theme and a white smear

@@ -83,6 +83,11 @@ window.__ModuleLoader__.load({
 .tc-ghost{height:24px;padding:0 8px;border-radius:6px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer}
 .tc-ghost:hover{color:var(--dsw-alias-label-primary)}
 .tc-row{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}
+/* v1.1.8b: the apply button sits in a flex-COLUMN row, so as a bare flex child
+   its align-self:stretch turned it into a full-width white bar (the production
+   "白色方框"). A .tc-line wrapper gives it flex-row layout: natural width,
+   right-aligned next to the spacer. */
+.tc-row .tc-line:last-child{margin-top:2px}
 .tc-row[data-retired="1"]{opacity:.72;border-style:dashed}
 .tc-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .tc-name{font-weight:600}
@@ -121,7 +126,7 @@ window.__ModuleLoader__.load({
    both read as a blank white block because on this host --dsw-alias-brand-primary
    itself resolves near-white, so no TEXT color can save a white fill. label and
    bg are opposites by definition — this pairing cannot be white-on-white. */
-.tc-apply{height:24px;padding:0 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}
+.tc-apply{flex:none;height:24px;padding:0 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}
 .tc-apply:disabled{opacity:.5;cursor:default}
 .tc-msg{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1.5;word-break:break-word}
 .tc-msg[data-kind="error"]{color:var(--dsw-alias-state-error-primary)}
@@ -442,7 +447,7 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-list{
         disabled: member.retired === true || chosen === undefined || efforts.length === 0,
         stale: draft.effort !== null && draft.effort !== "" && draft.effort !== undefined && !efforts.includes(draft.effort),
         onPick: (next) => setDraft({ effort: next || null })
-      })), h("span", { className: "tc-spacer" }), dirty && !member.retired && draft.model !== null && draft.model !== "" ? h("button", {
+      })), h("span", { className: "tc-line" }, h("span", { className: "tc-spacer" }), dirty && !member.retired && draft.model !== null && draft.model !== "" ? h("button", {
           className: "tc-apply",
           type: "button",
           disabled: busy,
@@ -472,7 +477,7 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-list{
             const fresh = await run("/crew list");
             if (fresh !== undefined) setView(fresh);
           }
-        }, t("retiring")), member.retired === true && member.retire_reason ? h("div", { className: "tc-msg" }, member.retire_reason) : null);
+        }, t("retiring")), member.retired === true && member.retire_reason ? h("div", { className: "tc-msg" }, member.retire_reason) : null, h("span", null)));
       }), h("div", { className: "tc-msg" }, t("help"))) : null);
     }
     return {

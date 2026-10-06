@@ -62,6 +62,10 @@ v1.1.7 复测仍有两个问题：
 
 探针同步升级：断言"任何规则不得用 brand-primary 做填充/对比"、应用按钮反色、列表不透明；并清掉一条 v1.1.6 起混进来的永真式断言（`test(...)===false ? 弱检查 : true` 恒真，是它两轮放过了白块）。46/46 PASS。
 
+## v1.1.9：应用按钮整行白条的布局根因
+
+用户复测仍见"白色方框"：`.tc-row` 是 flex 列容器，应用按钮作为裸子元素被 `align-self:stretch` 拉成**整行宽的色块**——不管什么配色，整行浅色块看起来都像个怪白条。修复：按钮包进 `.tc-line`（flex 行）恢复自然宽度、右对齐。另确认：用户截图显示的是 v1.1.7 旧前端（列表半透明、密集），v1.1.8 未随重启生效，需重启后核验。46/46 PASS。
+
 ## 实现要点（为什么不碰内核）
 
 - **模型**：队友出生时模型从 Lead 的 live 配置复制一次就固化在 `subagent/descriptor` 里；冷恢复也只按 descriptor 重建。本插件不改 journal、不改 descriptor，而是在**平台自己的模型选择接缝**上做事：`installModelSelection()`（`@deepseek-ai/dsh-agent`，就是 GUI 切模型用的同一套监听 `system-prompt/assemble` / `agent/request` / `agent/pre-step`）+ 往队友**自己**的会话日志追加已有的 log-only 事件 `model/selection`。所以效果与 GUI 手切一致：新挡位/新模型只在她下一轮请求的边界生效，上下文里多一条 `[model changed]` 提示，历史一个字都不动。

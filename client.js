@@ -22,7 +22,7 @@ window.__ModuleLoader__.load({
     // Bump together with package.json — rendered as a watermark in the desk
     // header so a stale frontend is diagnosable in one glance (four rounds of
     // "重启了还是没变" made this non-negotiable). The probe asserts the match.
-    const VERSION = "1.1.11";
+    const VERSION = "1.1.12";
     const DICTIONARY = {
       zh: {
         button: "队友",
@@ -81,7 +81,7 @@ window.__ModuleLoader__.load({
 .tc-wrap{position:relative;display:inline-flex}
 .tc-chip{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer}
 .tc-chip:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
-.tc-card{position:absolute;top:calc(100% + 6px);right:0;z-index:30;width:480px;max-width:88vw;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary);font-size:12px;box-shadow:0 12px 32px rgba(0,0,0,.28)}
+.tc-card{position:absolute;top:calc(100% + 6px);right:0;z-index:30;width:480px;max-width:88vw;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary);font-size:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);pointer-events:auto}
 .tc-head{display:flex;align-items:center;gap:8px}
 .tc-head b{font-size:13px;font-weight:600;flex:1}
 .tc-ver{color:var(--dsw-alias-label-secondary);font-size:10px;font-weight:400;opacity:.85;flex:none}
@@ -117,8 +117,8 @@ window.__ModuleLoader__.load({
 .tc-dd-btn:hover,.tc-dd-btn[data-open="1"]{border-color:var(--dsw-alias-border-l2)}
 .tc-dd-btn::after{content:"▾";margin-left:6px;font-size:10px;color:var(--dsw-alias-label-secondary)}
 .tc-dd-btn[data-stale="1"]{color:var(--dsw-alias-label-secondary);font-style:italic}
-.tc-list{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:100%;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);box-shadow:0 12px 32px rgba(0,0,0,.28)}
-.tc-opt{flex:none;min-height:32px;display:flex;align-items:center;padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);font-size:12px;line-height:1.45;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
+.tc-list{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:100%;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);box-shadow:0 12px 32px rgba(0,0,0,.28);pointer-events:auto}
+.tc-opt{flex:none;min-height:32px;padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);font-size:12px;line-height:1.45;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
 /* v1.1.8: hover/selected ride REAL surface tokens (bg-layer-2 over the opaque
    bg-overlay list), not brand tints — on this host brand-primary resolves
    near-white, so a brand wash was invisible in light theme and a white smear
@@ -250,7 +250,7 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
         note: text
       };
     }
-    function CrewDesk(props) {
+    const CrewDesk = React.memo(function CrewDesk(props) {
       const ctx = props.ctx;
       const t = typeof props.t === "function" ? props.t : (key) => DICTIONARY.zh[key] ?? key;
       const sessionId = props.sessionId;
@@ -492,7 +492,7 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
           }
         }, t("retiring")), member.retired === true && member.retire_reason ? h("div", { className: "tc-msg" }, member.retire_reason) : null, h("span", null)));
       }), h("div", { className: "tc-msg" }, t("help"))) : null);
-    }
+    });
     return {
       inject: [
         "slots",

@@ -107,17 +107,21 @@ window.__ModuleLoader__.load({
 .tc-dd-btn:hover,.tc-dd-btn[data-open="1"]{border-color:var(--dsw-alias-border-l2)}
 .tc-dd-btn::after{content:"▾";margin-left:6px;font-size:10px;color:var(--dsw-alias-label-secondary)}
 .tc-dd-btn[data-stale="1"]{color:var(--dsw-alias-label-secondary);font-style:italic}
-.tc-list{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:100%;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:2px;padding:4px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);box-shadow:0 12px 32px rgba(0,0,0,.28)}
-.tc-opt{padding:4px 8px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);font-size:12px;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
-.tc-opt:hover{background:color-mix(in srgb, var(--dsw-alias-brand-primary) 12%, transparent)}
-/* v1.1.6 regression: the selected entry used brand fill + base text, and under
-   the glass theme both tokens resolve near-white — a white block with invisible
-   text (same token pair as the apply button fixed in v1.1.6; the option was
-   missed). A translucent brand tint over the list surface + the safe primary
-   label keeps it readable in every theme pairing; ✓ rides a ::before. */
-.tc-opt[data-selected="1"]{background:color-mix(in srgb, var(--dsw-alias-brand-primary) 20%, transparent);color:var(--dsw-alias-label-primary);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent)}
+.tc-list{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:100%;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);box-shadow:0 12px 32px rgba(0,0,0,.28)}
+.tc-opt{padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);font-size:12px;line-height:1.45;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
+/* v1.1.8: hover/selected ride REAL surface tokens (bg-layer-2 over the opaque
+   bg-overlay list), not brand tints — on this host brand-primary resolves
+   near-white, so a brand wash was invisible in light theme and a white smear
+   in dark. Selected is distinguished by the ring + the ✓ prefix. */
+.tc-opt:hover{background:var(--dsw-alias-bg-layer-2)}
+.tc-opt[data-selected="1"]{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l2)}
 .tc-opt[data-selected="1"]::before{content:"✓";margin-right:6px;font-weight:600}
-.tc-apply{height:24px;padding:0 10px;border-radius:6px;border:none;cursor:pointer;font-size:12px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base);box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l2)}
+/* v1.1.8: the apply button is an INVERTED chip — label-primary fill, base text.
+   History: v1.1.6 shipped brand fill + recolored label, v1.1.7 kept the fill;
+   both read as a blank white block because on this host --dsw-alias-brand-primary
+   itself resolves near-white, so no TEXT color can save a white fill. label and
+   bg are opposites by definition — this pairing cannot be white-on-white. */
+.tc-apply{height:24px;padding:0 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}
 .tc-apply:disabled{opacity:.5;cursor:default}
 .tc-msg{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1.5;word-break:break-word}
 .tc-msg[data-kind="error"]{color:var(--dsw-alias-state-error-primary)}
@@ -163,20 +167,15 @@ body[data-we-wallpaper] .tc-dd-btn{
 body[data-ds-dark-theme][data-we-wallpaper] .tc-dd-btn{
   background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-dark,255,255,255), calc(var(--we-glass-alpha,.15) * .6)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-layer-2))}
 body[data-we-wallpaper] .tc-list{
-  background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-light,255,255,255), calc(var(--we-glass-alpha,.15) * .8)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-overlay));
-  -webkit-backdrop-filter:blur(var(--we-blur,16px)) saturate(var(--we-saturate,1.8)) brightness(var(--we-glass-brightness,1.04)) contrast(1.01);
-  backdrop-filter:blur(var(--we-blur,16px)) saturate(var(--we-saturate,1.8)) brightness(var(--we-glass-brightness,1.04)) contrast(1.01);
+  /* v1.1.8: the option list is a READING SURFACE, not a glass showpiece. The
+     translucent recipe let the white apply button and the row fields behind
+     bleed through, and the provider names visually merged into one smear
+     (production screenshot). Opaque overlay, no frosted blur; the glass look
+     stays on the card itself. */
+  background:var(--dsw-alias-bg-overlay);
   border:1px solid rgba(255,255,255,var(--we-glass-highlight,.32))}
 body[data-ds-dark-theme][data-we-wallpaper] .tc-list{
-  background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-dark,255,255,255), calc(var(--we-glass-alpha,.15) * .33)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-overlay))}
-body[data-we-wallpaper] .tc-apply{
-  /* Production feedback: brand-on-base read as a blank white block under the
-     glass theme (both tokens resolved near-white). An inset ring + the dark
-     scheme tint keeps the label readable regardless of token pairing. */
-  color:var(--dsw-alias-label-primary);
-  text-shadow:0 0 2px rgba(0,0,0,.35)}
-body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
-  text-shadow:0 0 2px rgba(255,255,255,.25)}
+  background:var(--dsw-alias-bg-overlay)}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   body[data-we-wallpaper] .tc-card{
     background:color-mix(in srgb, var(--dsw-alias-bg-overlay) 92%, transparent);

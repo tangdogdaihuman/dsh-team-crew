@@ -17,12 +17,19 @@ window.__ModuleLoader__.load({
   id: "@local/dsh-team-crew",
   factory(require) {
     const React = require("react");
+    const ReactDOM = require("react-dom");
+    // Host popover primitives: the same hooks the official TeamAction panel
+    // (dsh-experimental-client-ui-agent-team) uses for its portaled desk.
+    // Requiring them — instead of re-implementing anchored positioning — keeps
+    // our panel's placement and dismissal identical to the host's own header
+    // surfaces (titlebar clearance, scroll/resize tracking, portal dismissal).
+    const { useAnchoredPosition, useDismissOnOutsidePointer } = require("@deepseek-ai/dsh-client-ui-primitives");
     const h = React.createElement;
     const NS = "team-crew";
     // Bump together with package.json — rendered as a watermark in the desk
     // header so a stale frontend is diagnosable in one glance (four rounds of
     // "重启了还是没变" made this non-negotiable). The probe asserts the match.
-    const VERSION = "1.1.12";
+    const VERSION = "1.1.13";
     const DICTIONARY = {
       zh: {
         button: "队友",
@@ -81,7 +88,13 @@ window.__ModuleLoader__.load({
 .tc-wrap{position:relative;display:inline-flex}
 .tc-chip{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:12px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer}
 .tc-chip:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
-.tc-card{position:absolute;top:calc(100% + 6px);right:0;z-index:30;width:480px;max-width:88vw;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary);font-size:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);pointer-events:auto}
+/* v1.1.13: the card is a PORTAL (rendered into document.body) with position:fixed
+   coordinates from the host's useAnchoredPosition primitive — the same pattern as
+   the official TeamAction panel. History: position:absolute inside the header made
+   the card a child of the layout's CENTER COLUMN (overflow:hidden), so the half
+   extending toward the sidebar was clipped ("展开被挡住了"). A portal escapes that
+   clipping ancestor entirely; z-index 100 matches the host's own header panels. */
+.tc-card{position:fixed;z-index:100;width:480px;max-width:calc(100vw - 32px);max-height:min(680px,calc(100vh - 32px));overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary);font-size:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);pointer-events:auto}
 .tc-head{display:flex;align-items:center;gap:8px}
 .tc-head b{font-size:13px;font-weight:600;flex:1}
 .tc-ver{color:var(--dsw-alias-label-secondary);font-size:10px;font-weight:400;opacity:.85;flex:none}
@@ -372,6 +385,15 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
       }, [open]);
+      // v1.1.13: anchored fixed positioning + outside-pointer dismissal come from
+      // the host's own popover primitives (the same two hooks the official Team
+      // panel passes its trigger/panel refs to). The chip button is the anchor;
+      // the portaled card is the panel; the portal ref teaches dismissal that the
+      // card counts as "inside" even though it renders under document.body.
+      const chipRef = React.useRef(null);
+      const cardRef = React.useRef(null);
+      const position = useAnchoredPosition({ open, anchorRef: chipRef, panelRef: cardRef, gap: 6, margin: 16 });
+      useDismissOnOutsidePointer(chipRef, open, setOpen, cardRef);
       // Nothing to manage: stay out of the header entirely.
       if (teammates.length === 0) return null;
       const rows = view?.members ?? teammates.map((member) => ({
@@ -384,13 +406,16 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
       return h("div", { className: "tc-wrap" }, h("style", { dangerouslySetInnerHTML: { __html: CSS + GLASS_CSS } }), h("button", {
         className: "tc-chip",
         type: "button",
+        ref: chipRef,
         title: t("title"),
         "aria-expanded": open ? "true" : "false",
         onClick: () => setOpen((value) => !value)
-      }, t("button"), h("span", { className: "tc-tag" }, teammates.length)), open ? h("div", {
+      }, t("button"), h("span", { className: "tc-tag" }, teammates.length)), open ? ReactDOM.createPortal(h("div", {
         className: "tc-card",
+        ref: cardRef,
         role: "dialog",
-        "aria-label": t("title")
+        "aria-label": t("title"),
+        style: position ?? { visibility: "hidden", left: 0, top: 0 }
       }, h("div", { className: "tc-head" }, h("b", {}, t("title")), h("span", { className: "tc-ver" }, `v${VERSION}`), busy ? h("span", { className: "tc-msg" }, t("loading")) : null, h("button", {
         className: "tc-ghost",
         type: "button",
@@ -491,7 +516,7 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
             if (fresh !== undefined) setView(fresh);
           }
         }, t("retiring")), member.retired === true && member.retire_reason ? h("div", { className: "tc-msg" }, member.retire_reason) : null, h("span", null)));
-      }), h("div", { className: "tc-msg" }, t("help"))) : null);
+      }), h("div", { className: "tc-msg" }, t("help"))), document.body) : null);
     });
     return {
       inject: [

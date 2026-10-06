@@ -92,7 +92,11 @@ window.__ModuleLoader__.load({
 .tc-tag[data-kind="queued"]{color:var(--dsw-alias-state-warn-primary);border-color:currentColor}
 .tc-tag[data-kind="run"]{color:var(--dsw-alias-state-success-primary)}
 .tc-field{display:flex;align-items:center;gap:4px}
-.tc-field span{color:var(--dsw-alias-label-secondary);font-size:11px}
+/* Field captions get their own class: the old ".tc-field span" descendant rule
+   (0,1,1) out-specifed ".tc-opt" (0,1,0) and dragged every option down to 11px
+   secondary gray — the "tiny gray list" half of the v1.1.6 feedback. */
+.tc-cap{color:var(--dsw-alias-label-secondary);font-size:11px;flex:none}
+.tc-dd-flat{color:var(--dsw-alias-label-secondary);font-style:italic}
 /* Self-drawn dropdown. The native <select> popup is OS-drawn chrome: on this
    host it ignores page CSS entirely (v1.1.5's color-scheme + option colors
    were both dead on arrival). Rendering the list ourselves puts it under the
@@ -101,11 +105,18 @@ window.__ModuleLoader__.load({
 .tc-dd{position:relative;display:inline-flex}
 .tc-dd-btn{height:24px;min-width:110px;max-width:190px;padding:0 8px;border-radius:6px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font-size:12px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .tc-dd-btn:hover,.tc-dd-btn[data-open="1"]{border-color:var(--dsw-alias-border-l2)}
+.tc-dd-btn::after{content:"▾";margin-left:6px;font-size:10px;color:var(--dsw-alias-label-secondary)}
 .tc-dd-btn[data-stale="1"]{color:var(--dsw-alias-label-secondary);font-style:italic}
 .tc-list{position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:100%;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:2px;padding:4px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);box-shadow:0 12px 32px rgba(0,0,0,.28)}
-.tc-opt{padding:4px 8px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);white-space:nowrap}
-.tc-opt:hover{background:var(--dsw-alias-bg-layer-2)}
-.tc-opt[data-selected="1"]{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base)}
+.tc-opt{padding:4px 8px;border-radius:6px;cursor:pointer;color:var(--dsw-alias-label-primary);font-size:12px;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
+.tc-opt:hover{background:color-mix(in srgb, var(--dsw-alias-brand-primary) 12%, transparent)}
+/* v1.1.6 regression: the selected entry used brand fill + base text, and under
+   the glass theme both tokens resolve near-white — a white block with invisible
+   text (same token pair as the apply button fixed in v1.1.6; the option was
+   missed). A translucent brand tint over the list surface + the safe primary
+   label keeps it readable in every theme pairing; ✓ rides a ::before. */
+.tc-opt[data-selected="1"]{background:color-mix(in srgb, var(--dsw-alias-brand-primary) 20%, transparent);color:var(--dsw-alias-label-primary);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent)}
+.tc-opt[data-selected="1"]::before{content:"✓";margin-right:6px;font-weight:600}
 .tc-apply{height:24px;padding:0 10px;border-radius:6px;border:none;cursor:pointer;font-size:12px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-bg-base);box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l2)}
 .tc-apply:disabled{opacity:.5;cursor:default}
 .tc-msg{color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1.5;word-break:break-word}
@@ -237,24 +248,51 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
        */
       function Dropdown({ label, value, options, disabled, stale, onPick }) {
         const [listOpen, setListOpen] = React.useState(false);
-        if (disabled) return h("label", { className: "tc-field" }, h("span", {}, label), h("span", { className: "tc-dd-flat" }, value || "—"));
-        return h("label", { className: "tc-field" }, h("span", {}, label), h("span", {
+        // v1.1.6 regression: clicking an option did nothing. Options are plain
+        // spans, so the browser's mousedown default moved focus off the button,
+        // the unconditional onBlur tore the list down BEFORE the click landed,
+        // and onPick never ran (the probe called props.onClick directly and
+        // could not see DOM event ordering — another false-green). The pick now
+        // happens on mousedown with preventDefault: focus never leaves the
+        // button, no blur fires at all, and correctness no longer depends on
+        // timing. onBlur closes only when focus truly leaves the group
+        // (relatedTarget containment, the host Menu primitive's rule).
+        const pick = (next) => {
+          setListOpen(false);
+          onPick(next);
+        };
+        if (disabled) return h("span", { className: "tc-field" }, h("span", { className: "tc-cap" }, label), h("span", { className: "tc-dd-flat" }, value || "—"));
+        return h("span", { className: "tc-field" }, h("span", { className: "tc-cap" }, label), h("span", {
           className: "tc-dd",
-          onBlur: () => setListOpen(false)
+          onBlur: (event) => {
+            const next = event.relatedTarget;
+            if (next !== null && next !== undefined && event.currentTarget.contains(next)) return;
+            setListOpen(false);
+          }
         }, h("button", {
           className: "tc-dd-btn",
           type: "button",
           "data-open": listOpen ? "1" : "0",
           "data-stale": stale ? "1" : "0",
+          "aria-haspopup": "listbox",
+          "aria-expanded": listOpen ? "true" : "false",
           onClick: () => setListOpen((v) => !v)
-        }, value || "—"), listOpen ? h("span", { className: "tc-list" }, options.map((entry) => h("span", {
+        }, value || "—"), listOpen ? h("span", {
+          className: "tc-list",
+          role: "listbox",
+          onMouseDown: (event) => event.preventDefault()
+        }, options.map((entry) => h("span", {
           key: entry.value,
           className: "tc-opt",
+          role: "option",
+          tabIndex: -1,
+          "aria-selected": entry.value === value ? "true" : "false",
           "data-selected": entry.value === value ? "1" : "0",
-          onClick: () => {
-            setListOpen(false);
-            onPick(entry.value);
-          }
+          onMouseDown: (event) => {
+            event.preventDefault();
+            pick(entry.value);
+          },
+          onClick: () => pick(entry.value)
         }, entry.label))) : null));
       }
       const optionish = (value, label, selected) => ({ value, label: selected ? `${label} ${t("currentTag")}` : label });
@@ -359,10 +397,14 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
         const chosen = models.find((entry) => entry.model === draft.model);
         const efforts = Array.isArray(chosen?.efforts) ? chosen.efforts : [];
         const dirty = (draft.model ?? null) !== (member.model ?? null) || (draft.effort ?? null) !== (member.reasoning_effort ?? null);
+        // Seed the draft from the member's live route on first touch: spreading
+        // only current[member.name] (undefined until then) dropped provider and
+        // model, so touching the effort dropdown alone staged a model-less draft
+        // whose apply line would have read "provider/null".
         const setDraft = (patch) => setDrafts((current) => ({
           ...current,
           [member.name]: {
-            ...current[member.name],
+            ...(current[member.name] ?? { provider: member.provider ?? null, model: member.model ?? null, effort: member.reasoning_effort ?? null }),
             ...patch
           }
         }));

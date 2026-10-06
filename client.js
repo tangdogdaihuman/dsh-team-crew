@@ -19,6 +19,10 @@ window.__ModuleLoader__.load({
     const React = require("react");
     const h = React.createElement;
     const NS = "team-crew";
+    // Bump together with package.json — rendered as a watermark in the desk
+    // header so a stale frontend is diagnosable in one glance (four rounds of
+    // "重启了还是没变" made this non-negotiable). The probe asserts the match.
+    const VERSION = "1.1.10";
     const DICTIONARY = {
       zh: {
         button: "队友",
@@ -80,6 +84,7 @@ window.__ModuleLoader__.load({
 .tc-card{position:absolute;top:calc(100% + 6px);right:0;z-index:30;width:480px;max-width:88vw;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary);font-size:12px;box-shadow:0 12px 32px rgba(0,0,0,.28)}
 .tc-head{display:flex;align-items:center;gap:8px}
 .tc-head b{font-size:13px;font-weight:600;flex:1}
+.tc-ver{color:var(--dsw-alias-label-secondary);font-size:10px;font-weight:400;opacity:.85;flex:none}
 .tc-ghost{height:24px;padding:0 8px;border-radius:6px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer}
 .tc-ghost:hover{color:var(--dsw-alias-label-primary)}
 .tc-row{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1)}
@@ -171,16 +176,24 @@ body[data-we-wallpaper] .tc-dd-btn{
   background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-light,255,255,255), calc(var(--we-glass-alpha,.15) * 1.4)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-layer-2))}
 body[data-ds-dark-theme][data-we-wallpaper] .tc-dd-btn{
   background:color-mix(in srgb, rgba(var(--we-surface-tint-rgb-dark,255,255,255), calc(var(--we-glass-alpha,.15) * .6)) calc((1 - var(--we-readability-floor,0)) * 100%), var(--dsw-alias-bg-layer-2))}
-body[data-we-wallpaper] .tc-list{
-  /* v1.1.8: the option list is a READING SURFACE, not a glass showpiece. The
-     translucent recipe let the white apply button and the row fields behind
-     bleed through, and the provider names visually merged into one smear
-     (production screenshot). Opaque overlay, no frosted blur; the glass look
-     stays on the card itself. */
-  background:var(--dsw-alias-bg-overlay);
-  border:1px solid rgba(255,255,255,var(--we-glass-highlight,.32))}
+/* v1.1.10, replacing the v1.1.8 attempt: the wallpaper glass theme resolves
+   the --dsw-alias-* tokens to translucent / low-contrast values (list =
+   murky glass over a bright wallpaper, label/base tokens both near-white —
+   four token-based fix rounds all died on this). READING SURFACES therefore
+   pin literal colors whenever the glass theme is active. Token styling still
+   rules every non-wallpaper theme; the card keeps its glass recipe. */
+body[data-we-wallpaper] .tc-list,
 body[data-ds-dark-theme][data-we-wallpaper] .tc-list{
-  background:var(--dsw-alias-bg-overlay)}
+  background:#202227;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 12px 32px rgba(0,0,0,.5)}
+body[data-we-wallpaper] .tc-opt,
+body[data-ds-dark-theme][data-we-wallpaper] .tc-opt{color:#f0f1f3}
+body[data-we-wallpaper] .tc-opt:hover{background:rgba(255,255,255,.09)}
+body[data-we-wallpaper] .tc-opt[data-selected="1"]{background:rgba(255,255,255,.16);color:#ffffff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+body[data-we-wallpaper] .tc-apply,
+body[data-ds-dark-theme][data-we-wallpaper] .tc-apply{
+  background:#f4f5f7;color:#16171a}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   body[data-we-wallpaper] .tc-card{
     background:color-mix(in srgb, var(--dsw-alias-bg-overlay) 92%, transparent);
@@ -378,7 +391,7 @@ body[data-ds-dark-theme][data-we-wallpaper] .tc-list{
         className: "tc-card",
         role: "dialog",
         "aria-label": t("title")
-      }, h("div", { className: "tc-head" }, h("b", {}, t("title")), busy ? h("span", { className: "tc-msg" }, t("loading")) : null, h("button", {
+      }, h("div", { className: "tc-head" }, h("b", {}, t("title")), h("span", { className: "tc-ver" }, `v${VERSION}`), busy ? h("span", { className: "tc-msg" }, t("loading")) : null, h("button", {
         className: "tc-ghost",
         type: "button",
         disabled: busy,

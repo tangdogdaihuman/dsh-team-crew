@@ -80,6 +80,19 @@ v1.1.10 复测截图里选项文字仍是"极淡的白色短线/点状"。用户
 
 复测确认（2026-10-06）：重启后换脑台全部正常——选项一行一个不重叠、streaming 回复时面板保持打开可点击。期间用户另报"下方 TRAE 供应商选择展开异常"疑似本插件 CSS 污染，排查确认 `.tc-` 类名全库无冲突、选择器全部带 `body[data-we-wallpaper]` 前缀，未改代码，重启后自愈（旧前端多版本热更新的样式残影）。
 
+## v1.1.13：面板展开被侧栏挡住——portal 出裁剪祖先
+
+用户复测（v1.1.12 + 侧栏展开的宽布局）：换脑台卡片**左半边被会话区左边缘切断**——侧栏和会话头的层级把面板盖住了。挖宿主源码找到实锤根因：卡片是 `position:absolute` 挂在会话头按钮旁，属于布局框架**中列的子节点，而中列带 `overflow:hidden`**——凡是伸出去的部分都被裁剪，与 z-index 无关。
+
+修法完全照抄宿主官方「智能体团队」面板（挂同一个插槽）的模式：
+
+- **卡片改 `react_dom.createPortal(..., document.body)`**——彻底逃出 `overflow:hidden` 的裁剪祖先；
+- **`position:fixed` + `z-index:100`**，与官方头部面板同级；
+- 定位与点外关闭直接**复用宿主自己的原语** `useAnchoredPosition`（测量按钮矩形、钳制在视口内、滚动/缩放跟随）和 `useDismissOnOutsidePointer`（portal 归属判定），不自己实现几何计算；
+- 卡片加 `max-height:min(680px, 100vh-32px)` + 纵向滚动，小屏不被顶出视口。
+
+client probe 升级到 60 项（新增 portal 容器断言、fixed/z-100 断言、宿主原语接线断言；mini-React shim 补 `useRef`/`useLayoutEffect`/`createPortal` 标记）。60/60 + harness 90/90 + persistence 8/8 全绿。
+
 ## 实现要点（为什么不碰内核）
 
 - **模型**：队友出生时模型从 Lead 的 live 配置复制一次就固化在 `subagent/descriptor` 里；冷恢复也只按 descriptor 重建。本插件不改 journal、不改 descriptor，而是在**平台自己的模型选择接缝**上做事：`installModelSelection()`（`@deepseek-ai/dsh-agent`，就是 GUI 切模型用的同一套监听 `system-prompt/assemble` / `agent/request` / `agent/pre-step`）+ 往队友**自己**的会话日志追加已有的 log-only 事件 `model/selection`。所以效果与 GUI 手切一致：新挡位/新模型只在她下一轮请求的边界生效，上下文里多一条 `[model changed]` 提示，历史一个字都不动。
